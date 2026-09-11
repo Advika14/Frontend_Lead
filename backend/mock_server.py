@@ -1,4 +1,4 @@
-﻿"""
+"""
 SagarDrishti - FastAPI Backend Mock Companion (M1, M2, M3 baseline)
 Implements:
 - POST /chat: Request/response schema matching M1 & M2
@@ -148,7 +148,7 @@ def get_layer(layer_id: str, date: str):
         else:
             raise HTTPException(status_code=404, detail=f"Layer {layer_id} for date {date} not found")
 
-    with open(target_path, "r", encoding="utf-8") as f:
+    with open(target_path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 if __name__ == "__main__":
