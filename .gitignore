@@ -1,8 +1,10 @@
-﻿# Node / Vite
+# Node / Vite
 node_modules/
 dist/
+build/
 dist-ssr/
 *.local
+.env.local
 
 # Logs
 npm-debug.log*
@@ -14,9 +16,11 @@ pnpm-debug.log*
 # Python / Backend
 __pycache__/
 *.py[cod]
+*.pyc
 .venv/
 venv/
 .env
+*.env
 
 # OS
 .DS_Store
