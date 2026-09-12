@@ -1,13 +1,24 @@
+/**
+ * api.js - Frontend API Client
+ * 
+ * Yeh file backend se communicate karti hai.
+ * 1. sendMessage: User ka query aur location backend ke /chat endpoint pe bhejti hai.
+ * 2. fetchLayerGeoJson: Map ke liye GeoJSON layers (PFZ, SST, etc.) fetch karti hai.
+ * 3. Smart Fallback: Agar backend band ho, toh crash hone ke bajaye realistic mock data dikhaati hai.
+ */
+
 import { generateMockChatResponse } from "./mockData";
 
+// Backend server ka URL (FastAPI port 8000 pe chalega)
 const BACKEND_URL = "http://localhost:8000";
 
 /**
- * Send a message to the /chat endpoint.
- * Conforms strictly to M4/M1 API contract.
- * Automatically falls back to mock if backend is offline.
+ * Sends chat message to backend POST /chat
+ * @param {string} message - User ka query (e.g. "Where are the fish near Kochi?")
+ * @param {object} context - Location aur date details
  */
 export async function sendMessage(message, context = {}) {
+  // Default values agar user ne kuch specific select na kiya ho
   const defaultContext = {
     location: {
       name: "Kochi",
@@ -18,15 +29,18 @@ export async function sendMessage(message, context = {}) {
     ...context
   };
 
+  // Request payload strictly matches M1 & M2 schema
   const payload = {
     message,
     context: defaultContext
   };
 
   try {
+    // 3.5 second timeout to quickly detect if backend server is offline
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500);
 
+    // Call real backend: POST http://localhost:8000/chat
     const response = await fetch(`${BACKEND_URL}/chat`, {
       method: "POST",
       headers: {
@@ -39,7 +53,7 @@ export async function sendMessage(message, context = {}) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Server returned HTTP ${response.status}`);
+      throw new Error(`Server returned status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -48,8 +62,10 @@ export async function sendMessage(message, context = {}) {
       isMock: false
     };
   } catch (err) {
-    console.warn("Backend on :8000 unavailable, using schema-compliant local mock:", err.message);
-    // Simulate slight natural network latency
+    // Agar backend offline hai ya error de raha hai, fallback to realistic mock
+    console.warn("Backend offline ya unreachable hai. Fallback mock use ho raha hai:", err.message);
+    
+    // Thoda realistic delay (450ms) taaki typing feel natural lage
     await new Promise(res => setTimeout(res, 450));
     const mockData = generateMockChatResponse(message, defaultContext);
     return {
@@ -61,20 +77,21 @@ export async function sendMessage(message, context = {}) {
 }
 
 /**
- * Fetch GeoJSON layer by layer_id and date
+ * Map layers ko fetch karne ka function
+ * GET /layers/{layer_id}/{date}.geojson
  */
 export async function fetchLayerGeoJson(layerId, date = "2026-09-11") {
-  // First try backend endpoint: GET /layers/{layer_id}/{date}.geojson
+  // Pehle real backend se fetch karne ki koshish karo
   try {
     const res = await fetch(`${BACKEND_URL}/layers/${layerId}/${date}.geojson`);
     if (res.ok) {
       return await res.json();
     }
   } catch (e) {
-    // ignore and fall back to local public asset
+    // Backend band hai, local public folder se load karenge
   }
 
-  // Fallback to local static geojson file
+  // Local static files in public/data folder
   const localUrls = [
     `/data/${layerId}_kochi_${date}.geojson`,
     `/data/${layerId}_kochi_2026-09-11.geojson`,
@@ -88,21 +105,21 @@ export async function fetchLayerGeoJson(layerId, date = "2026-09-11") {
         return await res.json();
       }
     } catch (e) {
-      // try next
+      // Agle path ko try karo
     }
   }
 
-  throw new Error(`Could not load GeoJSON for layer: ${layerId}`);
+  throw new Error(`Layer GeoJSON nahi mila: ${layerId}`);
 }
 
 /**
- * Ensures layers array has normalized objects with id, name, and url
+ * Helper function: Layers array ko uniform format me convert karta hai
  */
 function normalizeResponse(data, context) {
   const date = context.date || "2026-09-11";
   let layers = data.layers || [];
 
-  // If layers is an array of strings e.g. ["pfz", "sst"]
+  // Agar backend ne sirf strings bheji ho ["pfz", "sst"]
   layers = layers.map(layer => {
     if (typeof layer === "string") {
       return {

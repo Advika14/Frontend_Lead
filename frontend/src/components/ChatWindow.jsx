@@ -1,10 +1,21 @@
+/**
+ * ChatWindow.jsx - Chat Interface Component
+ * 
+ * Yeh component user ke sath interactive conversation handle karta hai:
+ * - User input box aur Send button (Enter key support ke saath)
+ * - User vs Assistant message bubbles alag styling me
+ * - Quick prompt suggestion buttons (e.g. "Find PFZ near Kochi")
+ * - Typing indicator jab backend response generate kar raha ho
+ */
+
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Compass, Fish, ShieldAlert, Sparkles, AlertCircle } from "lucide-react";
+import { Send, Compass, Fish, ShieldAlert, Sparkles } from "lucide-react";
 
 export default function ChatWindow({ messages, onSendMessage, isLoading, isMockMode }) {
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef(null);
 
+  // Auto scroll to bottom jab naya message aaye
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -13,6 +24,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // Form submit handler
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!inputText.trim() || isLoading) return;
@@ -20,6 +32,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
     setInputText("");
   };
 
+  // Quick query pill click handler
   const handleQuickQuery = (text) => {
     if (isLoading) return;
     onSendMessage(text);
@@ -27,7 +40,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
 
   return (
     <div className="chat-window-container">
-      {/* Header / Mode info */}
+      {/* Chat Header */}
       <div className="chat-header">
         <div className="chat-header-title">
           <div className="pulse-indicator"></div>
@@ -43,7 +56,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
         )}
       </div>
 
-      {/* Suggested Quick Queries */}
+      {/* Suggested Quick Queries (Ek click me common sawal poochne ke liye) */}
       <div className="quick-prompts">
         <button
           type="button"
@@ -68,7 +81,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
         </button>
       </div>
 
-      {/* Message Feed */}
+      {/* Messages List Feed */}
       <div className="messages-list">
         {messages.map((msg, idx) => (
           <div
@@ -87,7 +100,6 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
                     {line.startsWith("**") && line.endsWith("**") ? (
                       <strong>{line.replace(/\*\*/g, "")}</strong>
                     ) : line.includes("**") ? (
-                      // Parse bold within text
                       line.split(/(\*\*.*?\*\*)/).map((chunk, ci) =>
                         chunk.startsWith("**") && chunk.endsWith("**") ? (
                           <strong key={ci}>{chunk.replace(/\*\*/g, "")}</strong>
@@ -113,6 +125,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
           </div>
         ))}
 
+        {/* Loading / Typing State */}
         {isLoading && (
           <div className="message-row assistant-row">
             <div className="avatar assistant-avatar">
@@ -131,7 +144,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, isMockM
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Box */}
+      {/* Input box & Send button */}
       <form onSubmit={handleSubmit} className="chat-input-form">
         <input
           type="text"
